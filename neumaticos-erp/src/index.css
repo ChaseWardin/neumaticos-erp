@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+@theme {
+  --color-erp-orange: #f97316;
+  --color-erp-yellow: #fbbf24;
+}
