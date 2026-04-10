@@ -5,6 +5,7 @@ import NuevoPedidoForm from './components/NuevoPedidoForm';
 import Proveedores from './components/ModuloCompras/Proveedores';
 import Cotizaciones from './components/ModuloCompras/Cotizaciones';
 import Stock from './components/Stock';
+import Services from './components/Services';
 import Ventas from './components/Ventas';
 import Tesoreria from './components/Tesoreria'; // NUEVO
 import Personal from './components/Personal'; // NUEVO
@@ -38,6 +39,10 @@ function App() {
       case 'proveedores': return <Proveedores />;
       case 'cotizaciones': return <Cotizaciones />;
       case 'stock': return <Stock />;
+      case 'servicios': return <Services />;
+      case 'ventas': return <Ventas/>;
+      case 'tesoreria': return <Tesoreria/>;
+      case 'personal': return <Personal/>;
       case 'compras':
         if (mostrarFormulario) {
           return (
@@ -85,7 +90,10 @@ function App() {
         <header className="mb-8 border-b-2 border-erp-yellow pb-4 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-black text-erp-orange uppercase tracking-tighter">
-              {moduloActual.replace('tesoreria', 'Tesorería').replace('personal', 'Recursos Humanos')}
+              {moduloActual
+                .replace('tesoreria', 'Tesorería')
+                .replace('personal', 'Recursos Humanos')
+                .replace('servicios', 'Servicios')}
             </h1>
           </div>
           <div className="bg-white px-4 py-2 rounded-lg shadow-sm border border-orange-100 text-right">

@@ -101,7 +101,7 @@ const Proveedores = () => {
 
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setMostrarFormProvee(false)} className="px-6 py-2 text-gray-600 font-semibold hover:bg-gray-100 rounded-lg">Cancelar</button>
+            <button onClick={() => setMostrarFormProvee(false)} className="px-6 py-2 text-gray-600 font-semibold bg-orange-100 hover:bg-orange-200 rounded-lg">Cancelar</button>
             <button onClick={guardarProveedor} className="px-6 py-2 bg-erp-orange text-white font-bold rounded-lg shadow-md hover:bg-orange-600 flex items-center gap-2">
               <Save size={20} /> Guardar Proveedor
             </button>

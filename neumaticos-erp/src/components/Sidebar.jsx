@@ -5,6 +5,7 @@ import {
   Users, 
   Calculator, 
   Package, 
+  Wrench,
   LogOut, 
   Send, 
   UserSquare2 
@@ -17,6 +18,7 @@ const Sidebar = ({ setModulo, moduloActual }) => {
     { id: 'cotizaciones', icon: <Send size={20} />, label: 'Cotizaciones' },
     { id: 'ventas', icon: <Tag size={20} />, label: 'Ventas & Facturación' },
     { id: 'stock', icon: <Package size={20} />, label: 'Stock / Existencias' },
+    { id: 'servicios', icon: <Wrench size={20} />, label: 'Servicios' },
     { id: 'tesoreria', icon: <Landmark size={20} />, label: 'Tesorería' },
     { id: 'personal', icon: <UserSquare2 size={20} />, label: 'Personal' },
   ];
