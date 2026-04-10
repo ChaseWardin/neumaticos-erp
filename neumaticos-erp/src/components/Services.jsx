@@ -1,27 +1,78 @@
-import { Search, Wrench, Clock3 } from 'lucide-react';
+import { Package, Search, Clock3, Plus } from 'lucide-react';
+import ServicesForm from './Forms/ServicesForm';
+import { useState } from 'react';
 
 const Services = () => {
-  const servicios = [
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [servicios,setServicios] = useState([
     { id: 1, nombre: 'Calibracion de neumaticos', categoria: 'Mantenimiento', precio: '1.000.000', duracion_aprox: '30 min', estado: 'Disponible' },
     { id: 2, nombre: 'Instalacion de neumaticos', categoria: 'Instalacion', precio: '300.000', duracion_aprox: '20 min', estado: 'Disponible' },
     { id: 3, nombre: 'Mantenimiento preventivo', categoria: 'Mantenimiento', precio: '300.000', duracion_aprox: '60 min', estado: 'Alta Demanda' },
     { id: 4, nombre: 'Alineacion y balanceo', categoria: 'Alineacion', precio: '450.000', duracion_aprox: '45 min', estado: 'Disponible' },
-  ];
+  ]);
+
+  const guardarServicio = ({ nombre, categoria, precio, duracion_aprox }) => {
+    setServicios((prev) => {
+      const nextId = (prev.length ? Math.max(...prev.map((s) => Number(s.id) || 0)) : 0) + 1;
+  
+      const nuevo = {
+        id: nextId,
+        nombre: nombre.trim(),
+        categoria,
+        precio,
+        duracion_aprox,
+        estado: 'Disponible',
+      };
+  
+      return [...prev, nuevo];
+    });
+    setMostrarFormulario(false);
+  };
+
+  const ServiciosFiltrado = servicios.filter((item) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    return [item.nombre, item.categoria].some((campo) => String(campo).toLowerCase().includes(q));
+  });
+
+  if (mostrarFormulario) {
+    return (
+      <ServicesForm
+        onCancelar={() => setMostrarFormulario(false)}
+        onGuardar={guardarServicio}
+      />
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden border border-orange-100">
-      <div className="p-6 border-b border-gray-100 bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
+      <div className="p-4 border border-gray-500 rounded-t-xl flex justify-between items-center bg-gray-50">
         <div className="flex items-center gap-2">
-          <Wrench className="text-erp-orange" />
-          <h2 className="text-xl font-bold text-gray-800">Servicios de Taller</h2>
+          <Package className="text-erp-orange" />
+          <h2 className="text-xl font-bold text-gray-800">Control de Servicios</h2>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Buscar servicio..."
-            className="pl-10 pr-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-erp-orange outline-none w-64"
-          />
+        <button
+          type="button"
+          onClick={() => setMostrarFormulario(true)}
+          className="flex items-center gap-2 bg-erp-orange text-white px-4 py-2 rounded-lg font-bold hover:bg-orange-600 transition-all shadow-md"
+        >
+          <Plus size={20} />
+          Nuevo servicio
+        </button>
+      </div>
+      <div className="bg-white rounded shadow-md md:p-6 mb-6 mx-0 md:mx-0 border border-gray-500">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-0">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o categoría..."
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-erp-orange outline-none"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -37,7 +88,7 @@ const Services = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {servicios.map((servicio) => (
+            {ServiciosFiltrado.map((servicio) => (
               <tr key={servicio.id} className="hover:bg-orange-50/50 transition-colors text-sm">
                 <td className="px-6 py-4 font-bold text-gray-700">{servicio.nombre}</td>
                 <td className="px-6 py-4 text-gray-600">{servicio.categoria}</td>
