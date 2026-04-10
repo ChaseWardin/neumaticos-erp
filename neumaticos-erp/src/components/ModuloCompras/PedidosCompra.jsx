@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Plus, Eye, ClipboardList, X } from 'lucide-react';
 
+const proveedoresMaestro = [
+  { id: 1, nombre: 'Neumáticos del Este' },
+  { id: 2, nombre: 'Importadora Global S.A.' },
+  { id: 3, nombre: 'Distribuidora Pirelli' },
+];
+
 const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
   const [pedidoDetalle, setPedidoDetalle] = useState(null);
 
@@ -58,8 +64,8 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
       </div>
 
       {pedidoDetalle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl border border-orange-100 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-16">
+          <div className="w-full max-w-2xl rounded-xl bg-white shadow-2xl border border-orange-100 overflow-hidden">
             <div className="bg-erp-orange p-4 flex items-center justify-between">
               <h3 className="text-white font-bold">Detalle de ítems del pedido #{pedidoDetalle.id}</h3>
               <button
@@ -70,7 +76,7 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                 <X size={20} />
               </button>
             </div>
-            <div className="p-4">
+            <div className="p-6">
               {!pedidoDetalle.items || pedidoDetalle.items.length === 0 ? (
                 <p className="text-sm text-gray-500">Este pedido no tiene ítems cargados.</p>
               ) : (
@@ -80,13 +86,15 @@ const PedidosCompra = ({ onNuevoPedido, pedidos }) => {
                       <tr>
                         <th className="px-4 py-2">Producto</th>
                         <th className="px-4 py-2 text-center">Cantidad</th>
+                        <th className="px-4 py-2 text-center">Proveedor</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {pedidoDetalle.items.map((item) => (
                         <tr key={item.id}>
-                          <td className="px-4 py-2">{item.nombre}</td>
+                          <td className="px-4 py-2">{item.nombreProducto}</td>
                           <td className="px-4 py-2 text-center font-medium">{item.cantidad}</td>
+                          <td className="px-4 py-2 text-center font-medium">{item.proveedorNombre}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -1,22 +1,68 @@
 import { useState } from 'react';
 import { X, Save, PlusCircle, Trash2 } from 'lucide-react';
 
+const catalogoProductos = [
+  {
+    id: 'michelin-primacy-4',
+    nombre: 'Michelin Primacy 4',
+    proveedores: [
+      { id: 1, nombre: 'Neumáticos del Este' },
+      { id: 3, nombre: 'Distribuidora Pirelli' },
+    ],
+  },
+  {
+    id: 'pirelli-scorpion-at',
+    nombre: 'Pirelli Scorpion AT',
+    proveedores: [{ id: 3, nombre: 'Distribuidora Pirelli' }],
+  },
+  {
+    id: 'bridgestone-turanza',
+    nombre: 'Bridgestone Turanza',
+    proveedores: [{ id: 2, nombre: 'Importadora Global S.A.' }],
+  },
+  {
+    id: 'fate-max-senti',
+    nombre: 'Fate Max Senti',
+    proveedores: [
+      { id: 1, nombre: 'Neumáticos del Este' },
+      { id: 2, nombre: 'Importadora Global S.A.' },
+    ],
+  },
+];
 
 const NuevoPedidoForm = ({ onCancelar, onGuardarPedido }) => {
   const [items, setItems] = useState([]);
-  const [producto, setProducto] = useState('');
+  const [productoId, setProductoId] = useState('');
   const [cantidad, setCantidad] = useState('');
-  const [proveedor, setProveedor] = useState('');
+  const [proveedorId, setProveedorId] = useState('');
+
+  const productoSeleccionado = catalogoProductos.find((p) => p.id === productoId);
+  const proveedoresDisponibles = productoSeleccionado?.proveedores ?? [];
 
   const agregarItem = () => {
-    if (!producto || !cantidad) return;
-    setItems([...items, { id: Date.now(), nombre: producto, cantidad: cantidad}]);
-    setProducto('');
+    if (!productoSeleccionado || !proveedorId || !cantidad || Number(cantidad) <= 0) return;
+    const proveedorSeleccionado = proveedoresDisponibles.find((p) => String(p.id) === proveedorId);
+    if (!proveedorSeleccionado) return;
+
+    setItems((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        productoId,
+        nombreProducto: productoSeleccionado.nombre,
+        cantidad: Number(cantidad),
+        proveedorId: Number(proveedorId),
+        proveedorNombre: proveedorSeleccionado.nombre,
+      },
+    ]);
+
+    setProductoId('');
     setCantidad('');
+    setProveedorId('');
   };
 
   const eliminarItem = (id) => {
-    setItems(items.filter(item => item.id !== id));
+    setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
   const guardarPedido = () => {
@@ -36,14 +82,22 @@ const NuevoPedidoForm = ({ onCancelar, onGuardarPedido }) => {
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 bg-orange-50 p-4 rounded-lg border border-orange-100">
           <div className="md:col-span-1">
-            <label className="block text-sm font-bold text-orange-800 mb-1">Producto / Neumático</label>
-            <input 
-              type="text" 
-              value={producto}
-              onChange={(e) => setProducto(e.target.value)}
-              placeholder="Ej: Michelin Primacy 4"
+            <label className="block text-sm font-bold text-orange-800 mb-1">Producto</label>
+            <select
+              value={productoId}
+              onChange={(e) => {
+                setProductoId(e.target.value);
+                setProveedorId('');
+              }}
               className="w-full p-2 border border-orange-300 rounded focus:ring-2 focus:ring-erp-orange outline-none"
-            />
+            >
+              <option value="">Seleccionar producto...</option>
+              {catalogoProductos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm font-bold text-orange-800 mb-1">Cantidad</label>
@@ -57,7 +111,22 @@ const NuevoPedidoForm = ({ onCancelar, onGuardarPedido }) => {
             />
           </div>
           <div>
-            
+            <label className="block text-sm font-bold text-orange-800 mb-1">Proveedor</label>
+            <select
+              value={proveedorId}
+              onChange={(e) => setProveedorId(e.target.value)}
+              disabled={!productoId}
+              className="w-full p-2 border border-orange-300 rounded focus:ring-2 focus:ring-erp-orange outline-none bg-white disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <option value="">
+                {productoId ? 'Seleccionar proveedor...' : 'Primero seleccioná un producto'}
+              </option>
+              {proveedoresDisponibles.map((p) => (
+                <option key={p.id} value={String(p.id)}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex items-end">
             <button 
@@ -74,6 +143,7 @@ const NuevoPedidoForm = ({ onCancelar, onGuardarPedido }) => {
             <thead className="bg-gray-100 text-gray-600 text-sm uppercase">
               <tr>
                 <th className="px-4 py-2">Producto</th>
+                <th className="px-4 py-2">Proveedor</th>
                 <th className="px-4 py-2 text-center">Cantidad</th>
                 <th className="px-4 py-2 text-right">Acción</th>
               </tr>
@@ -81,12 +151,13 @@ const NuevoPedidoForm = ({ onCancelar, onGuardarPedido }) => {
             <tbody className="divide-y divide-gray-100">
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="px-4 py-8 text-center text-gray-400 italic">No hay productos agregados al pedido</td>
+                  <td colSpan="4" className="px-4 py-8 text-center text-gray-400 italic">No hay productos agregados al pedido</td>
                 </tr>
               ) : (
                 items.map((item) => (
                   <tr key={item.id}>
-                    <td className="px-4 py-2 font-medium">{item.nombre}</td>
+                    <td className="px-4 py-2 font-medium">{item.nombreProducto}</td>
+                    <td className="px-4 py-2">{item.proveedorNombre}</td>
                     <td className="px-4 py-2 text-center">{item.cantidad}</td>
                     <td className="px-4 py-2 text-right">
                       <button onClick={() => eliminarItem(item.id)} className="text-red-500 hover:text-red-700">
