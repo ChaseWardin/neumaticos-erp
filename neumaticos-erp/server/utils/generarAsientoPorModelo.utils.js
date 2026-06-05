@@ -71,16 +71,17 @@ export const generarAsientoPorModelo = async (params, txClient = null, options =
       return null;
     }
 
+    // Si la fecha del asiento cae fuera del periodo seleccionado, ajustarla al rango del periodo
     if (fecha && periodoActivo.fecha_inicio && periodoActivo.fecha_fin) {
-      const fechaAsiento = new Date(fecha);
+      let fechaAsiento = new Date(fecha);
       const inicio = new Date(periodoActivo.fecha_inicio);
       const fin = new Date(periodoActivo.fecha_fin);
-      if (fechaAsiento < inicio || fechaAsiento > fin) {
-        const msg = `La fecha del asiento (${new Date(fecha).toISOString().split('T')[0]}) está fuera del periodo (${periodoActivo.fecha_inicio.toISOString().split('T')[0]} al ${periodoActivo.fecha_fin.toISOString().split('T')[0]})`;
-        if (strict) throw new Error(msg);
-        console.warn(`⚠️ ${msg}`);
-        return null;
+      if (fechaAsiento < inicio) {
+        fechaAsiento = new Date(inicio);
+      } else if (fechaAsiento > fin) {
+        fechaAsiento = new Date(fin);
       }
+      params.fecha = fechaAsiento;
     }
 
     // 3. Si hay cuenta bancaria, obtener su cuenta contable vinculada
@@ -143,7 +144,7 @@ export const generarAsientoPorModelo = async (params, txClient = null, options =
     // 7. Crear el asiento
     const asiento = await db.asientos.create({
       data: {
-        fecha: fecha || new Date(),
+        fecha: params.fecha || new Date(),
         numero_asiento: nroAsiento,
         descripcion,
         total_debe: totalDebe,

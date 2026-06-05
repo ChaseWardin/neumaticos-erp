@@ -164,14 +164,14 @@ export const createAsiento = async (req, res) => {
       if (!periodo) throw new Error('El periodo contable seleccionado no existe');
       if (periodo.estado !== 'Abierto') throw new Error('El periodo contable seleccionado está cerrado');
 
-      if (fecha && periodo.fecha_inicio && periodo.fecha_fin) {
-        const fechaAsiento = new Date(fecha);
+      let fechaFinal = fecha ? new Date(fecha) : new Date();
+      if (periodo.fecha_inicio && periodo.fecha_fin) {
         const inicio = new Date(periodo.fecha_inicio);
         const fin = new Date(periodo.fecha_fin);
-        if (fechaAsiento < inicio || fechaAsiento > fin) {
-          throw new Error(
-            `La fecha del asiento (${fecha}) está fuera del periodo (${periodo.fecha_inicio.toISOString().split('T')[0]} al ${periodo.fecha_fin.toISOString().split('T')[0]})`
-          );
+        if (fechaFinal < inicio) {
+          fechaFinal = new Date(inicio);
+        } else if (fechaFinal > fin) {
+          fechaFinal = new Date(fin);
         }
       }
 
@@ -198,7 +198,7 @@ export const createAsiento = async (req, res) => {
 
       const asiento = await tx.asientos.create({
         data: {
-          fecha: fecha ? new Date(fecha) : new Date(),
+          fecha: fechaFinal,
           descripcion,
           total_debe: totalDebe,
           total_haber: totalHaber,

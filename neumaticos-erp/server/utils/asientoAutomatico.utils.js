@@ -44,15 +44,15 @@ export const registrarAsientoAutomatico = async (params, txClient = null, option
     }
 
     if (fecha && periodoActivo.fecha_inicio && periodoActivo.fecha_fin) {
-      const fechaAsiento = new Date(fecha);
+      let fechaAsiento = new Date(fecha);
       const inicio = new Date(periodoActivo.fecha_inicio);
       const fin = new Date(periodoActivo.fecha_fin);
-      if (fechaAsiento < inicio || fechaAsiento > fin) {
-        const msg = `La fecha del asiento (${new Date(fecha).toISOString().split('T')[0]}) está fuera del periodo (${periodoActivo.fecha_inicio.toISOString().split('T')[0]} al ${periodoActivo.fecha_fin.toISOString().split('T')[0]})`;
-        if (strict) throw new Error(msg);
-        console.warn(`⚠️ ${msg}`);
-        return null;
+      if (fechaAsiento < inicio) {
+        fechaAsiento = new Date(inicio);
+      } else if (fechaAsiento > fin) {
+        fechaAsiento = new Date(fin);
       }
+      params.fecha = fechaAsiento;
     }
 
     const detallesConId = await Promise.all(
@@ -101,7 +101,7 @@ export const registrarAsientoAutomatico = async (params, txClient = null, option
 
     const asiento = await db.asientos.create({
       data: {
-        fecha: fecha || new Date(),
+        fecha: params.fecha || new Date(),
         numero_asiento: nroAsiento,
         descripcion,
         total_debe: totalDebe,
