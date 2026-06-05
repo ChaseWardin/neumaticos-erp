@@ -33,6 +33,10 @@ export const getAsientosContables = async (req, res) => {
 export const createAsientoContable = async (req, res) => {
     const { fecha, descripcion, id_proc_contable, detalles } = req.body;
 
+    if (!id_proc_contable) {
+        return res.status(400).json({ error: 'Debe especificar un periodo contable de trabajo' });
+    }
+
     if (!detalles || detalles.length < 2) {
         return res.status(400).json({ error: 'Un asiento debe tener al menos dos movimientos' });
     }
@@ -51,6 +55,19 @@ export const createAsientoContable = async (req, res) => {
     }
 
     try {
+        // Validar que el periodo exista y esté abierto
+        const periodo = await prisma.proceso_contable.findUnique({
+            where: { id_proc_contable: Number(id_proc_contable) }
+        });
+
+        if (!periodo) {
+            return res.status(400).json({ error: 'El periodo contable seleccionado no existe' });
+        }
+
+        if (periodo.estado !== 'Abierto') {
+            return res.status(400).json({ error: 'El periodo contable seleccionado está cerrado y no se pueden guardar asientos en él' });
+        }
+
         const nuevoAsiento = await prisma.$transaction(async (tx) => {
             // Obtener el siguiente número de asiento
             const ultimoAsiento = await tx.asientos.findFirst({

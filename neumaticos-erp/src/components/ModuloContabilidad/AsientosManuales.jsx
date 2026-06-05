@@ -13,12 +13,82 @@ const obtenerFechaLocal = () => {
 };
 
 const AsientosManuales = () => {
-  const { periodos, periodoActivo, setPeriodoActivo, cuentas } = usePlanCuentas();
-  const { asientos, loading, crearAsiento, getDetalleOrigen } = useAsientosContables(periodoActivo);
+  const { periodos, setPeriodoActivo, cuentas } = usePlanCuentas();
+  
+  // Período de trabajo seleccionado por el usuario, persistido en localStorage
+  const [periodoTrabajo, setPeriodoTrabajo] = useState(() => {
+    const saved = localStorage.getItem('periodoTrabajoContable');
+    return saved ? Number(saved) : null;
+  });
+
+  const { asientos, loading, crearAsiento, getDetalleOrigen } = useAsientosContables(periodoTrabajo);
   const [showForm, setShowForm] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
   const [asientoSeleccionado, setAsientoSeleccionado] = useState(null);
   const [detalleOrigen, setDetalleOrigen] = useState(null);
+
+  // Filtrar periodos para mostrar solo los abiertos en el selector de periodo de trabajo
+  const periodosAbiertos = useMemo(() => {
+    return periodos.filter(p => p.estado === 'Abierto');
+  }, [periodos]);
+
+  // Sincronizar el periodoTrabajo con los periodos cargados
+  useEffect(() => {
+    if (periodos && periodos.length > 0) {
+      const saved = localStorage.getItem('periodoTrabajoContable');
+      const savedId = saved ? Number(saved) : null;
+
+      // Validar si el periodo guardado existe y está abierto
+      const existsAndOpen = periodos.find(p => p.id === savedId && p.estado === 'Abierto');
+      if (existsAndOpen) {
+        setPeriodoTrabajo(savedId);
+        setPeriodoActivo(savedId);
+      } else {
+        // Por defecto, seleccionar el primer periodo abierto
+        const firstOpen = periodos.find(p => p.estado === 'Abierto');
+        if (firstOpen) {
+          setPeriodoTrabajo(firstOpen.id);
+          setPeriodoActivo(firstOpen.id);
+          localStorage.setItem('periodoTrabajoContable', firstOpen.id);
+        } else {
+          setPeriodoTrabajo(null);
+          setPeriodoActivo(null);
+          localStorage.removeItem('periodoTrabajoContable');
+        }
+      }
+    }
+  }, [periodos, setPeriodoActivo]);
+
+  // Manejar el cambio del periodo de trabajo con confirmación
+  const handlePeriodoTrabajoChange = (newId) => {
+    const targetId = newId ? Number(newId) : null;
+    if (targetId === periodoTrabajo) return;
+
+    if (periodoTrabajo) {
+      const pAnterior = periodos.find(p => p.id === periodoTrabajo);
+      const pNuevo = periodos.find(p => p.id === targetId);
+      const msg = `¿Seguro que quieres cambiar de periodo contable del "${pAnterior?.periodo_anho || ''}" al "${pNuevo?.periodo_anho || ''}"?`;
+      if (!window.confirm(msg)) {
+        return;
+      }
+    }
+
+    setPeriodoTrabajo(targetId);
+    setPeriodoActivo(targetId);
+    if (targetId) {
+      localStorage.setItem('periodoTrabajoContable', targetId);
+    } else {
+      localStorage.removeItem('periodoTrabajoContable');
+    }
+  };
+
+  const handleNuevoAsientoClick = () => {
+    if (!periodoTrabajo) {
+      alert('Por favor, seleccione un periodo contable activo antes de crear un asiento manual.');
+      return;
+    }
+    setShowForm(true);
+  };
 
   useEffect(() => {
     if (asientoSeleccionado && asientoSeleccionado.tabla_origen !== 'asiento_manual') {
@@ -86,7 +156,7 @@ const AsientosManuales = () => {
     const payload = {
       fecha: nuevoAsiento.fecha,
       descripcion: nuevoAsiento.descripcion,
-      id_proc_contable: periodoActivo,
+      id_proc_contable: periodoTrabajo,
       detalles: nuevoAsiento.lineas.map(l => ({
         id_cuenta: l.cuentaId,
         monto: Number(l.debe) > 0 ? Number(l.debe) : Number(l.haber),
@@ -116,22 +186,22 @@ const AsientosManuales = () => {
       {/* Header con Periodo y Nuevo Asiento */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3 bg-white border border-orange-100 rounded-2xl px-4 py-3 shadow-sm w-fit">
-          <span className="text-xs font-black text-erp-orange uppercase">Periodo:</span>
+          <span className="text-xs font-black text-erp-orange uppercase">Periodo de Trabajo:</span>
           <select
-            value={periodoActivo || ''}
-            onChange={(e) => setPeriodoActivo(e.target.value ? Number(e.target.value) : null)}
+            value={periodoTrabajo || ''}
+            onChange={(e) => handlePeriodoTrabajoChange(e.target.value ? Number(e.target.value) : null)}
             className="text-sm font-bold text-gray-700 focus:outline-none bg-transparent"
           >
-            <option value="">Todos los Periodos</option>
-            {periodos.map(p => (
-              <option key={p.id} value={p.id}>{p.periodo} — {p.estado}</option>
+            <option value="">Seleccionar periodo de trabajo...</option>
+            {periodosAbiertos.map(p => (
+              <option key={p.id} value={p.id}>{p.periodo_anho} — {p.estado}</option>
             ))}
           </select>
         </div>
 
         {puedeEditar('contabilidad') && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={handleNuevoAsientoClick}
             className="bg-erp-orange hover:bg-orange-600 text-white font-black py-3 px-6 rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
@@ -139,6 +209,21 @@ const AsientosManuales = () => {
           </button>
         )}
       </div>
+
+      {/* Banner de advertencia si no hay periodo seleccionado */}
+      {!periodoTrabajo && (
+        <div className="bg-amber-50 border-2 border-amber-100 rounded-3xl p-6 flex items-start gap-4 text-amber-800 shadow-sm animate-in fade-in slide-in-from-top-4 duration-200">
+          <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <p className="font-black text-sm uppercase tracking-tight">Periodo contable no seleccionado</p>
+            <p className="text-xs text-amber-700 mt-1 leading-relaxed">
+              No has seleccionado un periodo de trabajo contable activo. Por favor, selecciona uno de los periodos abiertos disponibles en el selector de arriba para poder visualizar y registrar asientos.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Estadísticas rápidas */}
       <div className="flex gap-4">
