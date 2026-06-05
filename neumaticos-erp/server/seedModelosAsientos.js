@@ -285,6 +285,17 @@ async function seed() {
     where: { nombre: { notIn: PROVEEDORES_VALIDOS } },
   });
   for (const p of provsInvalidos) {
+    const tieneRelaciones =
+      (await prisma.cotizacion.count({ where: { id_proveedor: p.id_proveedor } })) > 0 ||
+      (await prisma.factura_compra.count({ where: { id_proveedor: p.id_proveedor } })) > 0 ||
+      (await prisma.orden_compra.count({ where: { id_proveedor: p.id_proveedor } })) > 0 ||
+      (await prisma.lotes.count({ where: { id_proveedor: p.id_proveedor } })) > 0 ||
+      (await prisma.pedidos_proveedores.count({ where: { id_proveedor: p.id_proveedor } })) > 0 ||
+      (await prisma.orden_pago_proveedores.count({ where: { id_proveedor: p.id_proveedor } })) > 0;
+    if (tieneRelaciones) {
+      console.log(`  ⚠️ No se puede eliminar "${p.nombre}" (tiene datos relacionados)`);
+      continue;
+    }
     await prisma.proveedor_categorias.deleteMany({ where: { id_proveedor: p.id_proveedor } });
     await prisma.proveedores.delete({ where: { id_proveedor: p.id_proveedor } });
     console.log(`  🗑️ Proveedor eliminado: ${p.nombre}`);
