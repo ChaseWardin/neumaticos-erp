@@ -29,6 +29,7 @@ import periodosContablesRoutes from './routes/periodosContables.routes.js';
 import reportesContablesRoutes from './routes/reportesContables.routes.js';
 import reportesVentasRoutes from './routes/reportesVentas.routes.js';
 import modeloAsientoRoutes from './routes/modeloAsiento.routes.js';
+import { contextoPeriodo } from './utils/contextoPeriodo.js';
 
 //Funcionarios y Salarios
 import cargosRouter from './routes/cargos.routes.js';
@@ -47,6 +48,15 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use((req, res, next) => {
+  const workingPeriodId = req.headers['x-periodo-trabajo'];
+  if (workingPeriodId) {
+    contextoPeriodo.run({ workingPeriodId: Number(workingPeriodId) }, next);
+  } else {
+    next();
+  }
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api', usuariosRoutes);

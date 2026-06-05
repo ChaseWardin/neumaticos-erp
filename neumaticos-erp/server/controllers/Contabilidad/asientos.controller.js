@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma.js';
 import { generarAsientoPorModelo } from '../../utils/generarAsientoPorModelo.utils.js';
+import { contextoPeriodo } from '../../utils/contextoPeriodo.js';
 
 // GET: Obtener todos los asientos para la tabla del frontend
 export const getAsientosCompras = async (req, res) => {
@@ -131,7 +132,7 @@ async function idsPlanCuentasNomina(tx) {
 
 // POST /api/asientos  — usado por el módulo de nómina al cerrar proceso
 export const createAsiento = async (req, res) => {
-  const { descripcion, fecha, tabla_origen, id_registro_origen, detalles } = req.body;
+  const { descripcion, fecha, tabla_origen, id_registro_origen, id_proc_contable, detalles } = req.body;
   // detalles: [{ cuenta_contable, nombre_cuenta, debe, haber }]
 
   if (!detalles || detalles.length === 0) {
@@ -140,10 +141,43 @@ export const createAsiento = async (req, res) => {
 
   try {
     const resultado = await prisma.$transaction(async (tx) => {
+      let periodoId = id_proc_contable ? Number(id_proc_contable) : null;
+
+      if (!periodoId) {
+        const contextStore = contextoPeriodo.getStore();
+        periodoId = contextStore?.workingPeriodId ?? null;
+      }
+
+      if (!periodoId) {
+        const periodoFallback = await tx.proceso_contable.findFirst({
+          where: { estado: 'Abierto' },
+          orderBy: { fecha_inicio: 'desc' },
+        });
+        if (periodoFallback) periodoId = periodoFallback.id_proc_contable;
+      }
+
+      if (!periodoId) {
+        throw new Error('No hay un periodo contable abierto. Seleccioná un periodo de trabajo.');
+      }
+
+      const periodo = await tx.proceso_contable.findUnique({ where: { id_proc_contable: periodoId } });
+      if (!periodo) throw new Error('El periodo contable seleccionado no existe');
+      if (periodo.estado !== 'Abierto') throw new Error('El periodo contable seleccionado está cerrado');
+
+      if (fecha && periodo.fecha_inicio && periodo.fecha_fin) {
+        const fechaAsiento = new Date(fecha);
+        const inicio = new Date(periodo.fecha_inicio);
+        const fin = new Date(periodo.fecha_fin);
+        if (fechaAsiento < inicio || fechaAsiento > fin) {
+          throw new Error(
+            `La fecha del asiento (${fecha}) está fuera del periodo (${periodo.fecha_inicio.toISOString().split('T')[0]} al ${periodo.fecha_fin.toISOString().split('T')[0]})`
+          );
+        }
+      }
+
       const totalDebe = detalles.reduce((s, d) => s + Number(d.debe ?? 0), 0);
       const totalHaber = detalles.reduce((s, d) => s + Number(d.haber ?? 0), 0);
 
-      // Resolver o crear cada cuenta del plan
       const detallesConId = await Promise.all(
         detalles.map(async (d) => {
           let cuenta = await tx.plan_cuentas.findFirst({
@@ -171,11 +205,12 @@ export const createAsiento = async (req, res) => {
           estado: 'confirmado',
           tabla_origen: tabla_origen ?? 'nomina',
           id_registro_origen: id_registro_origen ?? null,
+          id_proc_contable: periodoId,
           asiento_detalle: {
             create: detallesConId.map(d => ({
               id_cuenta: d.id_cuenta,
               monto: d.debe > 0 ? d.debe : d.haber,
-              debe_haber: d.debe > 0,   // true = Debe, false = Haber
+              debe_haber: d.debe > 0,
             }))
           }
         },

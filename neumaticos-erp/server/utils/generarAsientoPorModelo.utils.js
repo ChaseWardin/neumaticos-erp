@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { contextoPeriodo } from './contextoPeriodo.js';
 
 /**
  * Genera un asiento contable a partir de un modelo de asiento configurable.
@@ -46,16 +47,40 @@ export const generarAsientoPorModelo = async (params, txClient = null, options =
     }
 
     // 2. Buscar periodo activo
-    const periodoActivo = await db.proceso_contable.findFirst({
-      where: { estado: 'Abierto' },
-      orderBy: { fecha_inicio: 'desc' },
-    });
+    const contextStore = contextoPeriodo.getStore();
+    const workingPeriodId = contextStore?.workingPeriodId;
+
+    let periodoActivo = null;
+    if (workingPeriodId) {
+      periodoActivo = await db.proceso_contable.findFirst({
+        where: { id_proc_contable: workingPeriodId, estado: 'Abierto' }
+      });
+    }
+
+    if (!periodoActivo) {
+      periodoActivo = await db.proceso_contable.findFirst({
+        where: { estado: 'Abierto' },
+        orderBy: { fecha_inicio: 'desc' },
+      });
+    }
 
     if (!periodoActivo) {
       const msg = 'No hay un periodo contable abierto. Abrí un periodo en Contabilidad antes de registrar movimientos.';
       if (strict) throw new Error(msg);
       console.warn(`⚠️ ${msg}`);
       return null;
+    }
+
+    if (fecha && periodoActivo.fecha_inicio && periodoActivo.fecha_fin) {
+      const fechaAsiento = new Date(fecha);
+      const inicio = new Date(periodoActivo.fecha_inicio);
+      const fin = new Date(periodoActivo.fecha_fin);
+      if (fechaAsiento < inicio || fechaAsiento > fin) {
+        const msg = `La fecha del asiento (${new Date(fecha).toISOString().split('T')[0]}) está fuera del periodo (${periodoActivo.fecha_inicio.toISOString().split('T')[0]} al ${periodoActivo.fecha_fin.toISOString().split('T')[0]})`;
+        if (strict) throw new Error(msg);
+        console.warn(`⚠️ ${msg}`);
+        return null;
+      }
     }
 
     // 3. Si hay cuenta bancaria, obtener su cuenta contable vinculada

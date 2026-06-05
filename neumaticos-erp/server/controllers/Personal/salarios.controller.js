@@ -422,7 +422,8 @@ export const createAdelanto = async (req, res) => {
         detalles: [
           { cuenta_codigo: 'SYS-NOM-SUELDOS', monto: Number(proceso.total), debe_haber: true, glosa: 'Adelanto de Sueldo' },
           { cuenta_codigo: cuentaContableCodigo, monto: Number(proceso.total), debe_haber: false, glosa: `Pago Adelanto - Cta. Nº ${cuenta.numero_cuenta || ''}` }
-        ]
+        ],
+        strict: true,
       });
     } catch (err) {
       console.error('Error al generar asiento contable del adelanto:', err);
@@ -595,7 +596,8 @@ export const cerrarProceso = async (req, res) => {
           ...(totalBonif > 0 ? [{ cuenta_codigo: 'SYS-NOM-BONIF', monto: totalBonif, debe_haber: true, glosa: 'Bonificación Familiar' }] : []),
           { cuenta_codigo: 'SYS-NOM-IPS', monto: totalIPS, debe_haber: false, glosa: 'Aportes IPS a Pagar' },
           { cuenta_codigo: cuentaContableCodigo, monto: totalNeto, debe_haber: false, glosa: `Pago Neto de Salarios - ${cuenta.banco} Cta. Nº ${cuenta.numero_cuenta}` }
-        ]
+        ],
+        strict: true,
       });
     } catch (err) {
       console.error('Error en integración contable de nómina:', err);

@@ -5,12 +5,29 @@ import Dashboard from './pages/Dashboard';
 import ChangePassword from './pages/ChangePassword';
 import axios from 'axios';
 
-// Interceptor global para fetch (manejo de expiración de sesión 401)
+// Interceptor global para fetch (manejo de expiración de sesión 401 y agregar x-periodo-trabajo)
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
+  let [resource, config] = args;
+  const periodId = localStorage.getItem('periodoTrabajoContable');
+  
+  if (periodId) {
+    if (!config) config = {};
+    if (!config.headers) config.headers = {};
+
+    if (config.headers instanceof Headers) {
+      config.headers.set('x-periodo-trabajo', periodId);
+    } else if (Array.isArray(config.headers)) {
+      config.headers.push(['x-periodo-trabajo', periodId]);
+    } else {
+      config.headers['x-periodo-trabajo'] = periodId;
+    }
+    args[1] = config;
+  }
+
   const response = await originalFetch(...args);
   if (response.status === 401) {
-    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+    const url = typeof resource === 'string' ? resource : resource?.url;
     if (url && !url.includes('/api/auth/perfil') && !url.includes('/api/auth/login')) {
       console.warn('Sesión expirada (401 - fetch). Redirigiendo a inicio de sesión...');
       localStorage.removeItem('token');
@@ -21,6 +38,19 @@ window.fetch = async (...args) => {
   }
   return response;
 };
+
+// Interceptor global de petición para axios (inyectar x-periodo-trabajo)
+axios.interceptors.request.use(
+  (config) => {
+    const periodId = localStorage.getItem('periodoTrabajoContable');
+    if (periodId) {
+      config.headers = config.headers || {};
+      config.headers['x-periodo-trabajo'] = periodId;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Interceptor global para axios (manejo de expiración de sesión 401)
 axios.interceptors.response.use(
