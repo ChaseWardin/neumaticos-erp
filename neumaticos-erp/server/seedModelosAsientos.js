@@ -204,12 +204,28 @@ async function seed() {
     }
   }
 
+  const FORMAS_PAGO_VALIDAS = ['Cheque', 'Efectivo', 'Nota de Crédito', 'Transferencia Bancaria'];
+
+  console.log('\n🧹 Limpiando formas de pago antiguas...');
+  const fpInvalidas = await prisma.forma_pago.findMany({
+    where: { metodo_pago: { notIn: FORMAS_PAGO_VALIDAS } },
+  });
+  for (const f of fpInvalidas) {
+    const uso = await prisma.orden_pago_forma_pago.findFirst({ where: { id_forma_pago: f.id_forma_pago } });
+    if (!uso) {
+      await prisma.forma_pago.delete({ where: { id_forma_pago: f.id_forma_pago } });
+      console.log(`  🗑️ Forma de pago eliminada: ${f.metodo_pago}`);
+    } else {
+      console.log(`  ⚠️ No se puede eliminar "${f.metodo_pago}" (en uso)`);
+    }
+  }
+
   console.log('\n🌱 Sembrando formas de pago...');
   const FORMAS_PAGO = [
-    { metodo_pago: 'Contado', tipo_metodo: 'contado' },
-    { metodo_pago: 'Crédito', tipo_metodo: 'credito' },
     { metodo_pago: 'Cheque', tipo_metodo: 'cheque' },
-    { metodo_pago: 'Transferencia', tipo_metodo: 'transferencia' },
+    { metodo_pago: 'Efectivo', tipo_metodo: 'efectivo' },
+    { metodo_pago: 'Nota de Crédito', tipo_metodo: 'nota_credito' },
+    { metodo_pago: 'Transferencia Bancaria', tipo_metodo: 'transferencia' },
   ];
   for (const f of FORMAS_PAGO) {
     const existe = await prisma.forma_pago.findFirst({ where: { metodo_pago: f.metodo_pago } });

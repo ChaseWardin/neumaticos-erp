@@ -61,7 +61,7 @@ const OrdenPagoProveedoresForm = ({
       [facturaId]: prev[facturaId].map((row, i) => {
         if (i !== idx) return row;
         const updated = { ...row, [field]: val };
-        if (field === 'medio' && val !== 'Transferencia bancaria' && val !== 'Cheque') {
+        if (field === 'medio' && val !== 'Transferencia Bancaria' && val !== 'Cheque') {
           updated.id_cuenta = '';
         }
         return updated;
@@ -122,7 +122,7 @@ const OrdenPagoProveedoresForm = ({
       for (const m of mf) {
         const montoMedio = Number(m.monto) || 0;
         if (montoMedio > 0) {
-          if ((m.medio === 'Transferencia bancaria' || m.medio === 'Cheque') && !m.id_cuenta) {
+          if ((m.medio === 'Transferencia Bancaria' || m.medio === 'Cheque') && !m.id_cuenta) {
             setError(`Seleccioná la cuenta bancaria para el pago de ${f.numero}.`);
             return;
           }
@@ -253,7 +253,7 @@ const OrdenPagoProveedoresForm = ({
                               </button>
                             </div>
 
-                            {(row.medio === 'Transferencia bancaria' || row.medio === 'Cheque') && (
+                            {(row.medio === 'Transferencia Bancaria' || row.medio === 'Cheque') && (
                               <div className="flex gap-2 items-center">
                                 <label className="text-[10px] uppercase font-bold text-gray-400 whitespace-nowrap">
                                   Cuenta Origen:

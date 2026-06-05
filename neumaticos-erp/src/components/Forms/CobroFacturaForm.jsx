@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Banknote } from 'lucide-react';
 import FormattedNumberInput from './FormattedNumberInput';
 
-const MEDIOS_CON_CUENTA = ['Cheque', 'Transferencia bancaria', 'Efectivo'];
+const MEDIOS_CON_CUENTA = ['Cheque', 'Transferencia Bancaria', 'Efectivo'];
 
 const CobroFacturaForm = ({
   factura,

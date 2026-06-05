@@ -1,6 +1,7 @@
-export const MEDIOS_BANCARIOS = ['Transferencia bancaria', 'Cheque'];
+export const MEDIOS_BANCARIOS = ['Transferencia Bancaria', 'Cheque'];
 
-export const esMedioBancario = (medio) => MEDIOS_BANCARIOS.includes(medio);
+export const esMedioBancario = (medio) =>
+  MEDIOS_BANCARIOS.some((m) => m.toLowerCase() === String(medio ?? '').trim().toLowerCase());
 
 /** Movimiento de egreso — pagos a proveedores */
 export const datosMovimientoPagoProveedor = (medio, monto, fecha, referencia) => {

@@ -37,7 +37,7 @@ export function useCobranzas(enabled = true) {
           .filter((n) => n && n !== 'Nota de crédito'),
       );
     } catch {
-      setMediosCobro(['Efectivo', 'Cheque', 'Transferencia bancaria', 'Otro']);
+      setMediosCobro(['Efectivo', 'Cheque', 'Transferencia Bancaria', 'Otro']);
     }
   }, []);
 

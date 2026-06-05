@@ -3,6 +3,7 @@ import {
   esMedioBancario,
   datosMovimientoPagoProveedor,
 } from '../../utils/tesoreriaIntegracion.utils.js';
+import { calcularSaldos } from '../Tesoreria/movimientos.controller.js';
 
 const redondear = (n) => Math.round(Number(n) * 100) / 100;
 const MEDIO_NOTA_CREDITO = 'Nota de crédito';
@@ -234,6 +235,7 @@ export const registrarPago = async (req, res) => {
           if (medio.id_cuenta) {
             cuenta = await tx.cuenta_bancaria.findUnique({
               where: { id_cuenta: medio.id_cuenta },
+              include: { movimiento_bancario: true },
             });
             if (!cuenta) {
               throw new Error(`La cuenta bancaria ${medio.id_cuenta} no existe`);
@@ -246,31 +248,50 @@ export const registrarPago = async (req, res) => {
                   { nombre: { equals: medio.medio.split(' ')[0], mode: 'insensitive' } },
                 ],
               },
-              include: { cuenta_bancaria: true },
+              include: { cuenta_bancaria: { include: { movimiento_bancario: true } } },
             });
             if (bancoMatch?.cuenta_bancaria?.length > 0) {
               cuenta = bancoMatch.cuenta_bancaria[0];
             }
           }
 
-          if (cuenta) {
-            const referencia = `Pago a Proveedor (OP-${String(ordenPago.id_orden_pago).padStart(4, '0')})`;
-            const datosMov = datosMovimientoPagoProveedor(
-              medio.medio,
-              medio.monto,
-              fecha,
-              referencia,
-            );
-            await tx.movimiento_bancario.create({
-              data: {
-                id_cuenta: cuenta.id_cuenta,
-                ...datosMov,
-                fecha_movimiento: fecha ? new Date(fecha) : new Date(),
-              },
-            });
+          if (!cuenta) {
+            throw new Error(`No se encontró cuenta bancaria para el pago con ${medio.medio}`);
           }
+
+          const { saldoDisponible } = calcularSaldos(
+            cuenta.movimiento_bancario ?? [],
+            cuenta.saldo ?? 0,
+            cuenta.saldo_disponible ?? 0,
+          );
+
+          if (saldoDisponible < medio.monto - 0.009) {
+            throw new Error(
+              `Saldo insuficiente en la cuenta. Disponible: Gs. ${saldoDisponible.toLocaleString('de-DE')}, required: Gs. ${medio.monto.toLocaleString('de-DE')}`
+            );
+          }
+
+          const referencia = `Pago a Proveedor (OP-${String(ordenPago.id_orden_pago).padStart(4, '0')})`;
+          const datosMov = datosMovimientoPagoProveedor(
+            medio.medio,
+            medio.monto,
+            fecha,
+            referencia,
+          );
+          const movimiento = await tx.movimiento_bancario.create({
+            data: {
+              id_cuenta: cuenta.id_cuenta,
+              ...datosMov,
+              fecha_movimiento: fecha ? new Date(fecha) : new Date(),
+            },
+          });
+
+          await tx.orden_pago_proveedores.update({
+            where: { id_orden_pago: ordenPago.id_orden_pago },
+            data: { id_movimiento: movimiento.id_movimiento },
+          });
         } catch (tesoreriaErr) {
-          console.error('Error al integrar con Tesorería (no bloqueante):', tesoreriaErr);
+          throw new Error(`Error al registrar movimiento bancario: ${tesoreriaErr.message}`);
         }
       }
 
