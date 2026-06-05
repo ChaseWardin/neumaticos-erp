@@ -186,7 +186,7 @@ export const registrarCobro = async (req, res) => {
         });
       }
 
-      const { ejecutarAsientoCobroCliente } = await import('./asientos.controller.js');
+      const { ejecutarAsientoCobroCliente } = await import('../Contabilidad/asientos.controller.js');
       const primerIdCuenta = mediosValidos.find(m => m.id_cuenta)?.id_cuenta || null;
       await ejecutarAsientoCobroCliente(
         tx,

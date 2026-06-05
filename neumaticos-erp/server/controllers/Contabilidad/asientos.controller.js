@@ -9,6 +9,7 @@ export const getAsientosCompras = async (req, res) => {
         OR: [
           { tabla_origen: 'factura_compra' },
           { tabla_origen: 'nota_credito' },
+          { tabla_origen: 'orden_pago_proveedores' },
         ],
       },
       orderBy: { id_asiento: 'desc' },
@@ -26,7 +27,8 @@ export const getAsientosVentas = async (req, res) => {
       where: {
         OR: [
           { tabla_origen: 'factura_venta' },
-          { tabla_origen: 'nota_credito_venta' }
+          { tabla_origen: 'nota_credito_venta' },
+          { tabla_origen: 'cobranza' },
         ]
       },
       include: {

@@ -34,7 +34,7 @@ export function useCobranzas(enabled = true) {
       setMediosCobro(
         data
           .map((f) => f.nombre)
-          .filter((n) => n && n !== 'Nota de crédito'),
+          .filter((n) => n && n.toLowerCase() !== 'nota de crédito'),
       );
     } catch {
       setMediosCobro(['Efectivo', 'Cheque', 'Transferencia Bancaria', 'Otro']);
